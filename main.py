@@ -2,7 +2,10 @@ import pandas as pd
 
 pd.options.display.width = 0
 pd.set_option('display.max_columns', 8)
+pd.set_option('display.max_rows', None)
 file_path = "MNQU25_M30.csv"  # your path
+
+use_every_red_candle = True  # if True, evaluate every red candle even if in a trade
 
 
 def backtest(path):
@@ -75,22 +78,35 @@ def backtest(path):
                 j += 1
 
             trades.append({
-                "entry_date": curr['date'],
-                "entry_time": curr['time'],
-                "exit_time": df.iloc[j]['time'] if j < n else None,
-                "entry_price": entry,
+                "Market position": "Long",
+                "Entry time": f"{curr['date']} {curr['time']}",
+                "Exit time": f"{df.iloc[j]['date']} {df.iloc[j]['time']}" if j < n else None,
+                "Entry price": entry,
                 "stop": stop,
-                "exit_price": exit_price,
+                "Exit price": exit_price,
                 "outcome": outcome,
-                "outcome_dollar": outcome_dollar,
+                "Profit": outcome_dollar,
             })
-            # print(trades)
-            # jump to resolution candle (or end if unresolved)
-            i = j if outcome is not None else n
+
+            # Skip to the next red candle while in a trade
+            if use_every_red_candle:
+                # If we are using every red candle, we don't skip to the next red candle
+                i += 1
+            else:
+                # If we are not using every red candle, we skip it while in a trade
+                i = j if outcome is not None else n
+
         else:
             i += 1
 
     results = pd.DataFrame(trades)
+
+    # Save results to CSV
+    try:
+        results.to_csv("results.csv", index=False)
+    except PermissionError as e:
+        print(f"Error saving results to CSV: {e}")
+
     print()
     print(results)
     print()
@@ -98,7 +114,7 @@ def backtest(path):
     if not results.empty and 'outcome' in results.columns:
         print(results['outcome'].value_counts())
         print()
-        print(f"Sum: ${results['outcome_dollar'].sum()}")
+        print(f"Sum: ${results['Profit'].sum()}")
     else:
         print("No trades found for these rules.")
 
