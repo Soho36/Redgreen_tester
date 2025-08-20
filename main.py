@@ -1,4 +1,8 @@
 import pandas as pd
+from colorama import Fore, Style, init
+from datetime import datetime
+
+init(autoreset=True)
 
 pd.options.display.width = 0
 pd.set_option('display.max_columns', 8)
@@ -100,17 +104,21 @@ def backtest(path):
             i += 1
 
     results = pd.DataFrame(trades)
+    results['Entry time'] = pd.to_datetime(results['Entry time'], errors='coerce')
+    results['Exit time'] = pd.to_datetime(results['Exit time'], errors='coerce')
 
     # Save results to CSV
     try:
         results.to_csv("results.csv", index=False)
     except PermissionError as e:
-        print(f"Error saving results to CSV: {e}")
+        print()
+        print(Fore.RED + Style.DIM + f"NB!!! Error saving results to CSV: {e}".upper())
 
     print()
     print(results)
     print()
     print(f"Total trades: {len(results)}")
+
     if not results.empty and 'outcome' in results.columns:
         print(results['outcome'].value_counts())
         print()
